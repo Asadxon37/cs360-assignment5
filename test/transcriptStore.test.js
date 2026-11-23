@@ -54,4 +54,30 @@ describe("TranscriptStore", () => {
     assert.deepEqual(store.getStudentIDs(), [firstID]);
     assert.throws(() => store.deleteStudent(secondID), /Student not found/);
   });
+
+  test("REF-201: changeGrade validates course and grade like addGrade", () => {
+    const studentID = store.addStudent("Noah");
+    store.addGrade(studentID, "CS360", 70);
+
+    assert.throws(() => store.changeGrade(studentID, "  ", 80), /Course name is required/);
+    assert.throws(
+      () => store.changeGrade(studentID, "CS360", -1),
+      /Grade must be an integer from 0 to 100/,
+    );
+    assert.throws(
+      () => store.changeGrade(studentID, "CS360", 80.5),
+      /Grade must be an integer from 0 to 100/,
+    );
+    assert.throws(() => store.changeGrade(studentID, "MA101", 80), /Grade not found for course MA101/);
+    assert.equal(store.getGrade(studentID, "CS360"), 70);
+  });
+
+  test("REF-201: course names are trimmed and uppercased everywhere", () => {
+    const studentID = store.addStudent("Noah");
+
+    store.addGrade(studentID, " cs360 ", "70");
+
+    assert.equal(store.getGrade(studentID, "Cs360"), 70);
+    assert.equal(store.getGrade(studentID, ""), undefined);
+  });
 });
