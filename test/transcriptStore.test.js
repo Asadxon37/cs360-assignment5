@@ -55,6 +55,52 @@ describe("TranscriptStore", () => {
     assert.throws(() => store.deleteStudent(secondID), /Student not found/);
   });
 
+  test("BUG-101: deleting a student also removes their stored grades", () => {
+    const studentID = store.addStudent("Mira");
+    store.addGrade(studentID, "CS360", 88);
+
+    store.deleteStudent(studentID);
+
+    assert.equal(store.getGrade(studentID, "CS360"), undefined);
+  });
+
+  test("BUG-102: addGrade rejects a second grade for the same student and course", () => {
+    const studentID = store.addStudent("Lin");
+    store.addGrade(studentID, "cs360", 85);
+
+    assert.throws(
+      () => store.addGrade(studentID, " CS360 ", 99),
+      /Grade already exists for course CS360/,
+    );
+    assert.equal(store.getGrade(studentID, "CS360"), 85);
+  });
+
+  test("BUG-102: changeGrade still corrects an existing grade", () => {
+    const studentID = store.addStudent("Lin");
+    store.addGrade(studentID, "CS360", 85);
+
+    store.changeGrade(studentID, "CS360", 90);
+
+    assert.equal(store.getGrade(studentID, "CS360"), 90);
+  });
+
+  test("BUG-103: name search trims whitespace and ignores case", () => {
+    const studentID = store.addStudent("Grace Lee");
+    store.addStudent("Grace Hall");
+
+    assert.deepEqual(store.getStudentIDs("  grace lee  "), [studentID]);
+    assert.deepEqual(store.getStudentIDs("GRACE LEE"), [studentID]);
+    assert.deepEqual(store.getStudentIDs("Nobody"), []);
+  });
+
+  test("BUG-103: name search does not change the stored display name", () => {
+    const studentID = store.addStudent("  Grace Lee ");
+
+    store.getStudentIDs("grace lee");
+
+    assert.equal(store.getTranscript(studentID).student.studentName, "Grace Lee");
+  });
+
   test("REF-201: changeGrade validates course and grade like addGrade", () => {
     const studentID = store.addStudent("Noah");
     store.addGrade(studentID, "CS360", 70);
